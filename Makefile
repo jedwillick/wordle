@@ -2,17 +2,18 @@ CC = gcc
 CFLAGS = -Wall -pedantic -std=gnu99
 LDFLAGS =
 LDLIBS =
-PROGS = wordle
+PROGS = wordle-server
 
 .PHONY: all debug clean
 
 all: $(PROGS)
 
-wordle: LDFLAGS += -pthread
-wordle: wordle.o util.o wordList.o
+wordle-server: LDFLAGS += -pthread
+wordle-server: wordleServer.o util.o wordList.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-wordle.o: CFLAGS += -pthread
-wordle.o: wordle.c util.h wordList.h
+wordleServer.o: CFLAGS += -pthread
+wordleServer.o: wordleServer.c util.h wordList.h
 
 util.o: util.c util.h
 
