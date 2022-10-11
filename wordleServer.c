@@ -195,8 +195,8 @@ void game_menu(FILE* to, FILE* from, ServerDetails* details,
     print_welcome(to);
     while (true) {
         fprintf(to, "Select one of the following:\n");
-        fprintf(to, "1. Play game (word length: %d, tries: %d)\n", wordLen,
-                tries);
+        fprintf(to, "1. Play game (word length: %d, tries: %d, answer: %s)\n",
+                wordLen, tries, answer ? answer : "?????");
         fprintf(to, "2. Change word length\n");
         fprintf(to, "3. Change number of tries\n");
         fprintf(to, "4. Cheat and set the answer\n");
