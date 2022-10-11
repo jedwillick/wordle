@@ -1,18 +1,25 @@
 CC = gcc
-CFLAGS = -Wall -pedantic -std=gnu99 $(INCLUDES)
-INCLUDES =
+CFLAGS = -Wall -pedantic -std=gnu99
 LDFLAGS =
 LDLIBS =
-GCOV = -fprofile-arcs -ftest-coverage
+PROGS = wordle
 
-all: wordle
+.PHONY: all debug clean
 
-wordle: CFLAGS += -pthread
+all: $(PROGS)
+
 wordle: LDFLAGS += -pthread
-wordle: wordle.c
+wordle: wordle.o util.o wordList.o
+
+wordle.o: CFLAGS += -pthread
+wordle.o: wordle.c util.h wordList.h
+
+util.o: util.c util.h
+
+wordList.o: wordList.c wordList.h
 
 debug: CFLAGS += -g
 debug: clean all
 
 clean:
-	rrm -f wordle
+	rm -f $(PROGS) *.o
