@@ -18,10 +18,10 @@
 #define DEFAULT_HOSTNAME     NULL  // Listen on all hosts
 #define DEFAULT_PORT         "0"   // Ephemeral port
 
-#define EXIT_OK              0
-#define EXIT_BAD_USAGE       1
-#define EXIT_FNF             2
-#define EXIT_CONNECTION_FAIL 3
+#define EXIT_OK          0
+#define EXIT_BAD_USAGE   1
+#define EXIT_FNF         2
+#define EXIT_LISTEN_FAIL 3
 
 #define STRFTIME_BUFFER 52
 
@@ -90,19 +90,14 @@ int main(int argc, char** argv) {
     ServerDetails* details = parse_arguments(argc, argv);
     ServerStats* stats = init_server_stats();
 
-    // Ignore SIGPIPE
-    struct sigaction sa;
-    memset(&sa, 0, sizeof(sa));
-    sa.sa_handler = SIG_IGN;
-    sa.sa_flags = SA_RESTART;
-    sigaction(SIGPIPE, &sa, NULL);
+    ignore_signals((int[]){SIGPIPE, 0});
 
     if (!open_server(details)) {
-        fprintf(stderr, "wordle: unable to connect to %s port %s\n",
+        fprintf(stderr, "wordle-server: unable to listen on %s port %s\n",
                 details->hostname, details->port);
         free_server_details(details);
         free_server_stats(stats);
-        return EXIT_CONNECTION_FAIL;
+        return EXIT_LISTEN_FAIL;
     }
     srand(time(NULL));
     process_connections(details, stats);
@@ -497,7 +492,7 @@ void free_server_details(ServerDetails* details) {
 }
 
 void usage_exit(void) {
-    fprintf(stderr, "Usage: ./wordle [-answers file] [-guesses file] "
+    fprintf(stderr, "Usage: wordle-server [-answers file] [-guesses file] "
                     "[hostname] [port]\n");
     exit(EXIT_BAD_USAGE);
 }

@@ -14,5 +14,6 @@ void* x_calloc(size_t nmemb, size_t size);
 bool parse_int(int* dest, char* src);
 char* read_line(FILE* file);
 bool read_int(int* dest, FILE* to, FILE* from, char* msg, int min, int max);
+void ignore_signals(int sigNums[]);
 
 #endif  // UTIL_H

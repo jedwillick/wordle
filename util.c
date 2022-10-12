@@ -1,6 +1,7 @@
 #include "util.h"
 
 #include <limits.h>
+#include <signal.h>
 
 #define INITIAL_BUFFER_SIZE 8
 
@@ -137,4 +138,13 @@ bool read_int(int* dest, FILE* to, FILE* from, char* msg, int min, int max) {
     }
     free(input);
     return read_int(dest, to, from, msg, min, max);
+}
+
+void ignore_signals(int sigNums[]) {
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = SIG_IGN;
+    for (int i = 0; sigNums[i]; i++) {
+        sigaction(sigNums[i], &sa, NULL);
+    }
 }
