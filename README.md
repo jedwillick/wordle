@@ -16,8 +16,8 @@ make
 A multi-threaded TCP IPv4 server hosting wordle.
 Multi-threading is implemented with the POSIX Threads (pthreads) library.
 
-## wordle-client (WIP)
+## wordle-client
 
-A simple client that can be used to connect to a server.
+A multi-threaded TCP IPv4 client that can be used to connect to the server.
 
 [nyt-wordle]: https://www.nytimes.com/games/wordle/index.html
