@@ -14,15 +14,15 @@
 #define NUM_ARGS 3
 
 typedef struct Comms {
-    // These are not thread safe.
     FILE* input;
     FILE* output;
+    bool fromServer;
 } Comms;
 
 int connect_to_server(char* hostname, char* port);
-int communicate_with_server(int sockFd);
+void communicate_with_server(int sockFd);
 void* communicate_thread(void* args);
-Comms* init_comms(FILE* input, FILE* output);
+Comms* init_comms(FILE* input, FILE* output, bool fromServer);
 
 int main(int argc, char** argv) {
     if (argc != NUM_ARGS) {
@@ -40,64 +40,48 @@ int main(int argc, char** argv) {
                 hostname, port);
         return EXIT_CONNECTION_FAIL;
     }
-    return communicate_with_server(sockFd);
+    communicate_with_server(sockFd);
+    return EXIT_OK;  // Will never reach here
 }
 
-Comms* init_comms(FILE* input, FILE* output) {
+Comms* init_comms(FILE* input, FILE* output, bool fromServer) {
     Comms* streams = malloc(sizeof(Comms));
     streams->input = input;
     streams->output = output;
+    streams->fromServer = fromServer;
     return streams;
 }
 
-int communicate_with_server(int sockFd) {
+void communicate_with_server(int sockFd) {
     int sockFdDup = dup(sockFd);
     FILE* to = fdopen(sockFdDup, "w");
     FILE* from = fdopen(sockFd, "r");
-    Comms* readFromServer = init_comms(from, stdout);
-    Comms* writeToServer = init_comms(stdin, to);
+    Comms* readFromServer = init_comms(from, stdout, true);
+    Comms* writeToServer = init_comms(stdin, to, false);
 
-    pthread_t tidRead, tidWrite;
-    pthread_create(&tidRead, NULL, communicate_thread, readFromServer);
-    pthread_create(&tidWrite, NULL, communicate_thread, writeToServer);
-
-    void* ret;
-    pthread_join(tidWrite, &ret);
-    int status = *((int*)ret);
-    free(ret);
-
-    // Only need to cancel read thread on
-    // EOF of write thread.
-    if (status == EXIT_OK) {
-        pthread_cancel(tidRead);
-        pthread_join(tidRead, &ret);
-    } else {
-        pthread_join(tidRead, &ret);
-        free(ret);  // Ignore return value
-    }
-
-    fclose(from);
-    fclose(to);
-    return status;
+    pthread_t tid;
+    pthread_create(&tid, NULL, communicate_thread, readFromServer);
+    pthread_detach(tid);
+    communicate_thread(writeToServer);
 }
 
 void* communicate_thread(void* comms) {
     FILE* input = ((Comms*)comms)->input;
     FILE* output = ((Comms*)comms)->output;
+    bool fromServer = ((Comms*)comms)->fromServer;
     free(comms);
     char* line;
     while ((line = read_line(input))) {
         if (fprintf(output, "%s\n", line) < 0 || fflush(output) == EOF) {
-            free(line);
-            int* ret = malloc(sizeof(int));
-            *ret = EXIT_CONNECTION_FAIL;
-            return ret;
+            exit(EXIT_CONNECTION_FAIL);
         }
         free(line);
     }
-    int* ret = malloc(sizeof(int));
-    *ret = EXIT_OK;
-    return ret;
+    if (fromServer) {
+        printf("Server closed the connection\n");
+    }
+    exit(EXIT_OK);
+    return NULL;  // Never reach here
 }
 
 int connect_to_server(char* hostname, char* port) {
