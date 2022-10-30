@@ -10,9 +10,6 @@
 #include "util.h"
 #include "wordList.h"
 
-#define MAX_ARGC 7
-#define MIN_ARGC 1
-
 #define DEFAULT_ANSWERS_PATH "default-answers.txt"
 #define DEFAULT_GUESSES_PATH "default-guesses.txt"
 #define DEFAULT_HOSTNAME     NULL  // Listen on all hosts
@@ -36,8 +33,6 @@
 #define CMD_OPTION  '-'
 #define WRONG_GUESS '-'
 #define IP_DELIM    '.'
-
-#define MAX_BACKLOG 128
 
 typedef struct {
     WordList* answers;
@@ -84,7 +79,7 @@ void fatal_server_error(int socketfd);
 
 /* Wordle Server
  * −−−−−−−−−−−−−−−
- * Usage: ./wordle [-answers file] [-guesses file] [hostname] [port]
+ * Usage: ./wordle-server [-answers file] [-guesses file] [hostname] [port]
  */
 int main(int argc, char** argv) {
     ServerDetails* details = parse_arguments(argc, argv);
@@ -272,10 +267,8 @@ bool play_game(FILE* to, FILE* from, ServerDetails* details, int wordLen,
                 fprintf(to, "Word not found in the dictionary - try again.\n");
             }
         }
-        if (tries) {
-            print_prompt(to, wordLen, tries);
-        }
         free(guess);
+        print_prompt(to, wordLen, tries);
     }
     fprintf(to, "Bad luck - the word is \"%s\".\n", answer);
     return false;
@@ -321,6 +314,9 @@ char* get_hint(char* guess, char* answer, int wordLen) {
 }
 
 void print_prompt(FILE* stream, int wordLen, int tries) {
+    if (tries <= 0) {
+        return;
+    }
     fprintf(stream, "Enter a %d letter word ", wordLen);
     if (tries == 1) {
         fprintf(stream, "(last attempt):\n");
@@ -405,7 +401,7 @@ bool open_server(ServerDetails* details) {
     }
     freeaddrinfo(info);
 
-    if (listen(fd, MAX_BACKLOG)) {
+    if (listen(fd, SOMAXCONN)) {
         return false;
     }
     details->fd = fd;
@@ -435,9 +431,6 @@ bool print_server_port(ServerDetails* details) {
 }
 
 ServerDetails* parse_arguments(int argc, char** argv) {
-    if (argc < MIN_ARGC || argc > MAX_ARGC) {
-        usage_exit();
-    }
     char* answersPath = DEFAULT_ANSWERS_PATH;
     char* guessesPath = DEFAULT_GUESSES_PATH;
     char* hostname = DEFAULT_HOSTNAME;
@@ -446,7 +439,7 @@ ServerDetails* parse_arguments(int argc, char** argv) {
     bool hostnameFound = false, portFound = false;
 
     // Starting at 1 to avoid program name
-    for (int i = 1; i < argc; i++) {
+    for (int i = 1; argv[i]; i++) {
         if (argv[i][0] == CMD_OPTION) {
             if (i + 1 >= argc) {
                 usage_exit();
