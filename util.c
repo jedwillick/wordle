@@ -110,7 +110,7 @@ char* read_line(FILE* file) {
         if (c == '\n') {
             break;
         }
-        if (i == bufferSize) {
+        if (i == bufferSize - 1) {
             bufferSize *= 2;  // Double strategy
             temp = buffer;
             buffer = realloc(buffer, bufferSize);
